@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ElasticSearch Flask Autosuggesties</title>
+    <title>ElasticSearch Flask Autosuggestions</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js" integrity="sha512-aVKKRRi/Q/YV+4mjoKBsE4x3H+BkegoM/em46NNlCqNTmUYADjBbeNefNxYV7giUp0VxICtqdrbqU7iVaeZNXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
       body { font-family: Arial, sans-serif; margin: 20px; }
-      .search-box { width: 600px; padding: 10px; margin-bottom: 20px; }
+      .search-box { width: 300px; padding: 10px; margin-bottom: 20px; }
       .results { list-style-type: none; padding: 0; }
       .results li { margin: 5px 0; padding: 5px; border: 1px solid #ccc; border-radius: 3px; cursor: pointer; }
       .results li.selected { background-color: #007bff; color: white; font-weight: bold; }
@@ -17,26 +17,26 @@
     </style>
   </head>
   <body>
-    <h1>Zoek Elasticsearch</h1>
+    <h1>Search Elasticsearch</h1>
 
     <div class="dropdown">
-      <label for="indices">Kies Index:</label>
+      <label for="indices">Choose Index:</label>
       <select id="indices">
-        <option>Indices laden...</option>
+        <option>Loading indices...</option>
       </select>
     </div>
 
     <div class="dropdown">
-      <label for="fields">Kies Veld:</label>
+      <label for="fields">Choose Field:</label>
       <select id="fields">
-        <option>Velden laden...</option>
+        <option>Loading fields...</option>
       </select>
     </div>
 
-    <label for="search">Zoek naar Waarde:</label>
-    <input type="text" id="search" class="search-box" placeholder="Typ om te zoeken...">
+    <label for="search">Search for Value:</label>
+    <input type="text" id="search" class="search-box" placeholder="Type to search...">
 
-    <h2>Selecteer om document hieronder te tonen:</h2>
+    <h2>Select to show document below:</h2>
     <ul id="results" class="results"></ul>
 
     <div id="document" class="document" style="display: none;">
@@ -47,7 +47,7 @@
       $(document).ready(function() {
         let selectedHit = null;
 
-        // Haal indices op
+        // Fetch indices
         $.getJSON('/get_indices', function(data) {
           var indices = $('#indices');
           indices.empty();
@@ -56,7 +56,7 @@
           });
         });
 
-        // Haal velden op wanneer een index is geselecteerd
+        // Fetch fields when an index is selected
         $('#indices').change(function() {
           var index = $(this).val();
           $.getJSON('/get_fields', { index: index }, function(data) {
@@ -68,7 +68,7 @@
           });
         });
 
-        // Verwerk zoekinvoer
+        // Handle search input
         $('#search').on('input', function() {
           var query = $(this).val();
           var index = $('#indices').val();
@@ -86,7 +86,7 @@
           }
         });
 
-        // Verwerk resultaatselectie
+        // Handle result selection
         $('#results').on('click', 'li', function() {
           $('#results li').removeClass('selected');
           $(this).addClass('selected');
