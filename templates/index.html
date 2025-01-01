@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElasticSearch Flask Autosuggesties</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js" integrity="sha512-aVKKRRi/Q/YV+4mjoKBsE4x3H+BkegoM/em46NNlCqNTmUYADjBbeNefNxYV7giUp0VxICtqdrbqU7iVaeZNXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      .search-box { width: 600px; padding: 10px; margin-bottom: 20px; }
+      .results { list-style-type: none; padding: 0; }
+      .results li { margin: 5px 0; padding: 5px; border: 1px solid #ccc; border-radius: 3px; cursor: pointer; }
+      .results li.selected { background-color: #007bff; color: white; font-weight: bold; }
+      .dropdown { margin-bottom: 20px; }
+      .document { margin-top: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 3px; }
+      pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+  </head>
+  <body>
+    <h1>Zoek Elasticsearch</h1>
+
+    <div class="dropdown">
+      <label for="indices">Kies Index:</label>
+      <select id="indices">
+        <option>Indices laden...</option>
+      </select>
+    </div>
+
+    <div class="dropdown">
+      <label for="fields">Kies Veld:</label>
+      <select id="fields">
+        <option>Velden laden...</option>
+      </select>
+    </div>
+
+    <label for="search">Zoek naar Waarde:</label>
+    <input type="text" id="search" class="search-box" placeholder="Typ om te zoeken...">
+
+    <h2>Selecteer om document hieronder te tonen:</h2>
+    <ul id="results" class="results"></ul>
+
+    <div id="document" class="document" style="display: none;">
+      <pre id="document-content"></pre>
+    </div>
+
+    <script>
+      $(document).ready(function() {
+        let selectedHit = null;
+
+        // Haal indices op
+        $.getJSON('/get_indices', function(data) {
+          var indices = $('#indices');
+          indices.empty();
+          $.each(data, function(index, value) {
+            indices.append($('<option>').text(value).attr('value', value));
+          });
+        });
+
+        // Haal velden op wanneer een index is geselecteerd
+        $('#indices').change(function() {
+          var index = $(this).val();
+          $.getJSON('/get_fields', { index: index }, function(data) {
+            var fields = $('#fields');
+            fields.empty();
+            $.each(data, function(index, value) {
+              fields.append($('<option>').text(value).attr('value', value));
+            });
+          });
+        });
+
+        // Verwerk zoekinvoer
+        $('#search').on('input', function() {
+          var query = $(this).val();
+          var index = $('#indices').val();
+          var field = $('#fields').val();
+          if (query.length > 0) {
+            $.getJSON('/search', { q: query, index: index, field: field }, function(data) {
+              var results = $('#results');
+              results.empty();
+              $.each(data, function(index, item) {
+                results.append($('<li>').text(item.value).data('hit', item));
+              });
+            });
+          } else {
+            $('#results').empty();
+          }
+        });
+
+        // Verwerk resultaatselectie
+        $('#results').on('click', 'li', function() {
+          $('#results li').removeClass('selected');
+          $(this).addClass('selected');
+          selectedHit = $(this).data('hit');
+          if (selectedHit) {
+            var docId = selectedHit.id;
+            var index = $('#indices').val();
+            var field = $('#fields').val();
+            $.getJSON('/get_document', { id: docId, index: index }, function(data) {
+              var documentContent = $('#document-content');
+              var jsonString = JSON.stringify(data, function(key, value) {
+                if (key === field) {
+                  return `<b style="color: red;">${value}</b>`;
+                }
+                return value;
+              }, 2);
+              jsonString = jsonString.replace(/\"<b style=\\\"color: red;\\\">(.*?)<\/b>\"/g, '<b style="color: red;">$1</b>');
+              documentContent.empty().html(jsonString);
+              $('#document').show();
+            });
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
