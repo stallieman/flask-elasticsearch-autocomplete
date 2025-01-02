@@ -86,15 +86,33 @@ def search_autocomplete():
     if not query or not index or not field:
         return jsonify([])
 
+    # Determine the field type (text or keyword)
+    field_type = "text"  # Default to text
+    try:
+        mapping = es.indices.get_mapping(index=index)
+        field_mapping = mapping[index]['mappings']['properties'].get(field, {})
+        field_type = field_mapping.get('type', 'text')
+    except Exception as e:
+        app.logger.error(f"Error determining field type for {field}: {e}")
+
     # Elasticsearch query for autocomplete
-    search_query = {
-        "match": {
-            field: {
-                "query": query,
-                "fuzziness": "AUTO"  # Allow for minor spelling errors
+    if field_type == "text":
+        search_query = {
+            "match": {
+                field: {
+                    "query": query,
+                    "fuzziness": "AUTO"  # Allow for minor spelling errors
+                }
             }
         }
-    }
+    elif field_type == "keyword":
+        search_query = {
+            "wildcard": {
+                field: {
+                    "value": f"*{query}*"
+                }
+            }
+        }
 
     try:
         response = es.search(index=index, body={"query": search_query}, size=MAX_SIZE)
